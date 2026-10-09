@@ -9,3 +9,4 @@ langchain
 sentence-transformers
 pypdf
 pydantic-settings
+rank-bm25

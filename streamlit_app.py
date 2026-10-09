@@ -34,7 +34,7 @@ def process_uploads(uploaded_files):
     if not chunks:
         raise ValueError("No readable text found. The PDF may be a scan.")
 
-    st.session_state.agent = build_agent(build_vector_store(chunks))
+    st.session_state.agent = build_agent(build_vector_store(chunks), chunks)
 
 def show_sources(sources):
     """Show an expandable list of where the answer came from."""
