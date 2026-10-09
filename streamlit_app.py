@@ -36,6 +36,14 @@ def process_uploads(uploaded_files):
 
     st.session_state.agent = build_agent(build_vector_store(chunks))
 
+def show_sources(sources):
+    """Show an expandable list of where the answer came from."""
+    if not sources:
+        return
+    with st.expander(f"Sources ({len(sources)})"):
+        for s in sources:
+            st.markdown(f"**{s['file']}** · page {s['page']} · match {s['score']:.2f}")
+            st.caption(s["snippet"] + "...")
 
 # ---------- sidebar ----------
 with st.sidebar:
@@ -62,7 +70,9 @@ if st.session_state.agent is None:
 # ---------- screen 2: chat ----------
 else:
     for m in st.session_state.messages:
-        st.chat_message(m["role"]).markdown(m["content"])
+        with st.chat_message(m["role"]):
+            st.markdown(m["content"])
+            show_sources(m.get("sources", []))
 
     query = st.chat_input("Ask anything about your documents...")
     if query:
@@ -70,7 +80,11 @@ else:
         st.chat_message("user").markdown(query)
 
         with st.spinner("Thinking..."):
-            answer = ask(st.session_state.agent, query, st.session_state.thread_id)
+            answer, sources = ask(st.session_state.agent, query, st.session_state.thread_id)
 
-        st.chat_message("assistant").markdown(answer)
-        st.session_state.messages.append({"role": "assistant", "content": answer})
+        with st.chat_message("assistant"):
+            st.markdown(answer)
+            show_sources(sources)
+        st.session_state.messages.append(
+            {"role": "assistant", "content": answer, "sources": sources}
+        )

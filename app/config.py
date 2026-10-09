@@ -9,4 +9,6 @@ EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
 LLM_MODEL = "openai/gpt-oss-20b"
 CHUNK_SIZE = 1000
 CHUNK_OVERLAP = 200
-TOP_K = 6
+TOP_K = 8
+MIN_SIMILARITY = 0.15
+NOT_FOUND_MESSAGE = "I couldn't find this in your uploaded documents."
