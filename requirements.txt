@@ -8,3 +8,4 @@ langgraph
 langchain
 sentence-transformers
 pypdf
+pydantic-settings

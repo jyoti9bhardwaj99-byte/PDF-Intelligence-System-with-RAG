@@ -1,0 +1,12 @@
+from dotenv import load_dotenv
+
+load_dotenv()
+
+from pathlib import Path
+
+UPLOAD_DIR = Path("data/uploads")
+EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
+LLM_MODEL = "openai/gpt-oss-20b"
+CHUNK_SIZE = 1000
+CHUNK_OVERLAP = 200
+TOP_K = 6
