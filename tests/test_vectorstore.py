@@ -9,8 +9,8 @@ def doc(source, page, text):
 
 def test_same_chunk_from_a_different_folder_gets_the_same_id():
     # Regression test: IDs used the full path, so re-uploading doubled the index
-    a = doc(r"app\doc_files\syllabus.pdf", 5, "Module 8.5 text")
-    b = doc(r"data\uploads\syllabus.pdf", 5, "Module 8.5 text")
+    a = doc("app/doc_files/syllabus.pdf", 5, "Module 8.5 text")
+    b = doc("data/uploads/syllabus.pdf", 5, "Module 8.5 text")
     assert _chunk_id(a) == _chunk_id(b)
 
 
