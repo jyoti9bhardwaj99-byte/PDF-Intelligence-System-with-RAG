@@ -104,4 +104,11 @@ def test_empty_question_is_rejected_with_422(api):
     _, client = api
     r = client.post("/ask", json={"question": "", "conversation_id": "t"})
     assert r.status_code == 422
-    
+
+def test_demo_mode_blocks_upload_and_clear(api, monkeypatch):
+    main, client = api
+    monkeypatch.setattr(main, "DEMO_MODE", True)
+
+    assert client.post("/documents", files=[PDF]).status_code == 403
+    assert client.delete("/documents").status_code == 403
+    assert client.get("/documents").status_code == 200   

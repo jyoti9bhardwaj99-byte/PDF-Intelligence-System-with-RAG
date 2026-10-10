@@ -1,10 +1,11 @@
 import threading
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, File, HTTPException, UploadFile
 
 from app.agent import build_agent
-from app.config import UPLOAD_DIR
+from app.config import DEMO_MODE, DEMO_PDF, UPLOAD_DIR
 from app.ingestion import ingest_files
 from app.schemas import (
     AskRequest,
@@ -14,13 +15,22 @@ from app.schemas import (
 )
 from app.vectorstore import VectorIndex
 
-app = FastAPI(title="PDF Intelligence API", version="0.1.0")
-
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 index = VectorIndex()
 
 _lock = threading.Lock()  # the agent keeps per-question state, so one question at a time
 _agent = None
+
+
+@asynccontextmanager
+async def lifespan(app):
+    """In demo mode, index the sample PDF once when the server starts."""
+    if DEMO_MODE and index.count() == 0 and DEMO_PDF.exists():
+        index.add(ingest_files([DEMO_PDF]))
+    yield
+
+
+app = FastAPI(title="PDF Intelligence API", version="0.1.0", lifespan=lifespan)
 
 
 def _get_agent():
@@ -47,6 +57,9 @@ def list_documents():
 @app.post("/documents", response_model=UploadResponse)
 def upload_documents(files: list[UploadFile] = File(...)):
     global _agent
+    if DEMO_MODE:
+        raise HTTPException(status_code=403, detail="Uploads are disabled in the public demo.")
+
     paths = []
     for f in files:
         name = Path(f.filename or "").name  # .name removes any folder tricks
@@ -79,6 +92,8 @@ def upload_documents(files: list[UploadFile] = File(...)):
 @app.delete("/documents")
 def clear_documents():
     global _agent
+    if DEMO_MODE:
+        raise HTTPException(status_code=403, detail="Clearing is disabled in the public demo.")
     with _lock:
         index.clear()
         _agent = None

@@ -17,3 +17,5 @@ HEADING_PATTERN = r"(?:Module|Chapter|Unit)\s+\d+(?:\.\d+)?\s*:"
 MAX_SECTION_CHARS = 2000
 CHROMA_DIR = Path("data/chroma")
 API_URL = os.getenv("API_URL", "http://localhost:8000")
+DEMO_MODE = os.getenv("DEMO_MODE", "false").lower() == "true"
+DEMO_PDF = Path("app/doc_files/data_science_syllabus.pdf")

@@ -3,7 +3,7 @@ import uuid
 import requests
 import streamlit as st
 
-from app.config import API_URL, LLM_MODEL
+from app.config import API_URL, DEMO_MODE, LLM_MODEL
 
 st.set_page_config(page_title="PDF Intelligence System", page_icon="📄")
 st.title("📄 PDF Intelligence System")
@@ -61,7 +61,8 @@ docs = resp.json() if resp.ok else {"files": [], "chunks": 0}
 
 with st.sidebar:
     st.caption(f"Model: {LLM_MODEL}")
-    st.caption(f"API: {API_URL}")
+    if not DEMO_MODE:
+        st.caption(f"API: {API_URL}")
 
     st.subheader("Indexed documents")
     if docs["files"]:
@@ -70,31 +71,37 @@ with st.sidebar:
     else:
         st.write("None yet")
 
-    uploaded = st.file_uploader(
-        "Add PDF files",
-        type=["pdf"],
-        accept_multiple_files=True,
-        key=f"upload_{st.session_state.uploader_key}",
-    )
-    if uploaded:
-        files = [("files", (f.name, f.getvalue(), "application/pdf")) for f in uploaded]
-        with st.spinner("Indexing..."):
-            r = api("POST", "/documents", files=files, timeout=600)
-        if r.ok:
-            new_chat()
-        else:
-            st.session_state.upload_error = error_text(r)
-        st.session_state.uploader_key += 1  # empties the uploader
-        st.rerun()
-    if st.session_state.upload_error:
-        st.error(st.session_state.upload_error)
-        st.session_state.upload_error = None
+    if DEMO_MODE:
+        st.info(
+            "Public demo: a sample PDF is pre-loaded and uploads are turned off. "
+            "Try asking: Explain Module 8.5. Run the project locally to use your own PDFs."
+        )
+    else:
+        uploaded = st.file_uploader(
+            "Add PDF files",
+            type=["pdf"],
+            accept_multiple_files=True,
+            key=f"upload_{st.session_state.uploader_key}",
+        )
+        if uploaded:
+            files = [("files", (f.name, f.getvalue(), "application/pdf")) for f in uploaded]
+            with st.spinner("Indexing..."):
+                r = api("POST", "/documents", files=files, timeout=600)
+            if r.ok:
+                new_chat()
+            else:
+                st.session_state.upload_error = error_text(r)
+            st.session_state.uploader_key += 1  # empties the uploader
+            st.rerun()
+        if st.session_state.upload_error:
+            st.error(st.session_state.upload_error)
+            st.session_state.upload_error = None
 
     st.divider()
     if st.button("New chat"):
         new_chat()
         st.rerun()
-    if st.button("Clear all documents"):
+    if not DEMO_MODE and st.button("Clear all documents"):
         api("DELETE", "/documents", timeout=60)
         new_chat()
         st.rerun()
