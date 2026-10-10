@@ -11,3 +11,7 @@ pypdf
 pydantic-settings
 rank-bm25
 langchain-chroma
+fastapi
+uvicorn
+python-multipart
+requests

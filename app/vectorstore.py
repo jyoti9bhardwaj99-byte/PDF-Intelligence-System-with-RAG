@@ -17,7 +17,8 @@ def get_embeddings():
 
 def _chunk_id(doc):
     """Same chunk -> same ID, so uploading the same PDF twice doesn't create duplicates."""
-    raw = f"{doc.metadata.get('source')}|{doc.metadata.get('page')}|{doc.page_content}"
+    name = Path(doc.metadata.get("source", "")).name  # file name only, not the full path
+    raw = f"{name}|{doc.metadata.get('page')}|{doc.page_content}"
     return hashlib.sha1(raw.encode("utf-8")).hexdigest()
 
 
