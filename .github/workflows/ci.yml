@@ -4,6 +4,7 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
 
 jobs:
   test:
@@ -25,3 +26,26 @@ jobs:
 
       - name: Run tests
         run: python -m pytest -q
+
+  docker:
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build image
+        run: docker build -t pdf-rag .
+
+      - name: Start the API and check /health
+        run: |
+          docker run -d --name rag -p 8000:8000 -e GROQ_API_KEY=dummy pdf-rag
+          for i in $(seq 1 40); do
+            if curl -sf http://localhost:8000/health; then
+              echo
+              echo "API is up"
+              exit 0
+            fi
+            sleep 3
+          done
+          docker logs rag
+          exit 1
