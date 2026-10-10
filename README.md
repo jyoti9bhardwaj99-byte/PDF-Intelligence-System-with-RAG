@@ -16,7 +16,8 @@ Ask questions about your PDFs and get answers with **page citations**. A **FastA
 - **REST API** (FastAPI) with typed request and response models and interactive docs at `/docs`
 - **Tests and CI**: 18 pytest tests run on every push with GitHub Actions, which also builds the Docker image and checks that the API starts
 - **Evaluation script**: measures retrieval quality (Hit@k and MRR) for vector-only vs hybrid search
-
+- **Demo mode**: setting `DEMO_MODE=true` makes the API read-only with a pre-loaded sample PDF, which is how a public demo can run safely without accounts
+- 
 ## Architecture
 
 ```
