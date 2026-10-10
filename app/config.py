@@ -14,3 +14,4 @@ MIN_SIMILARITY = 0.15
 NOT_FOUND_MESSAGE = "I couldn't find this in your uploaded documents."
 HEADING_PATTERN = r"(?:Module|Chapter|Unit)\s+\d+(?:\.\d+)?\s*:"
 MAX_SECTION_CHARS = 2000
+CHROMA_DIR = Path("data/chroma")

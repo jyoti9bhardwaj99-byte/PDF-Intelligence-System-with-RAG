@@ -5,7 +5,7 @@ from pathlib import Path
 from app.config import MIN_SIMILARITY, TOP_K
 from app.ingestion import ingest_files
 from app.retrieval import HybridRetriever
-from app.vectorstore import build_vector_store
+from app.vectorstore import VectorIndex
 
 PDF = Path("app/doc_files/data_science_syllabus.pdf")
 GOLDEN = Path("eval/golden.jsonl")
@@ -21,7 +21,9 @@ def first_hit_rank(chunks, marker):
 
 def main():
     chunks = ingest_files([PDF])
-    store = build_vector_store(chunks)
+    store = VectorIndex(persist_dir=Path("data/chroma_eval"), name="eval")
+    store.clear()
+    store.add(chunks)
     hybrid = HybridRetriever(store, chunks)
 
     lines = GOLDEN.read_text(encoding="utf-8").splitlines()
