@@ -1,7 +1,7 @@
 # 📄 PDF Intelligence System with RAG
 
 Ask questions about your PDFs and get answers with **page citations**. A **FastAPI** backend does the work (ingestion, hybrid retrieval, answer generation) and a **Streamlit** app is the client. The system refuses to answer when the documents don't contain the answer.
-
+![CI](https://github.com/jyoti9bhardwaj99-byte/PDF-Intelligence-System-with-RAG/actions/workflows/ci.yml/badge.svg)
 ## Features
 
 - **Hybrid retrieval**: BM25 keyword search plus embeddings, merged with Reciprocal Rank Fusion (RRF), so exact labels like "Module 8.5" are found as reliably as descriptive questions
