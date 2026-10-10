@@ -1,64 +1,48 @@
 import uuid
-from pathlib import Path
 
+import requests
 import streamlit as st
 
-from app.agent import ask, build_agent
-from app.config import LLM_MODEL, UPLOAD_DIR
-from app.ingestion import ingest_files
-from app.vectorstore import VectorIndex
-
-UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+from app.config import API_URL, LLM_MODEL
 
 st.set_page_config(page_title="PDF Intelligence System", page_icon="📄")
 st.title("📄 PDF Intelligence System")
 
 
-@st.cache_resource
-def get_index():
-    """One saved index, shared by every rerun of the script."""
-    return VectorIndex()
+# ---------- talking to the API ----------
+def api(method, path, timeout=120, **kwargs):
+    """Call the backend. If it isn't running, show a clear message."""
+    try:
+        return requests.request(method, f"{API_URL}{path}", timeout=timeout, **kwargs)
+    except requests.ConnectionError:
+        st.error(
+            f"Cannot reach the API at {API_URL}. "
+            "Start it in another terminal: uvicorn app.main:app --port 8000"
+        )
+        st.stop()
 
 
-index = get_index()
+def error_text(resp):
+    try:
+        return str(resp.json().get("detail", resp.text))
+    except Exception:
+        return resp.text
+
 
 # ---------- data kept between reruns ----------
-if "agent" not in st.session_state:
-    st.session_state.agent = None
 if "messages" not in st.session_state:
     st.session_state.messages = []
-if "thread_id" not in st.session_state:
-    st.session_state.thread_id = str(uuid.uuid4())
+if "conversation_id" not in st.session_state:
+    st.session_state.conversation_id = str(uuid.uuid4())
 if "uploader_key" not in st.session_state:
     st.session_state.uploader_key = 0
+if "upload_error" not in st.session_state:
+    st.session_state.upload_error = None
 
 
 def new_chat():
     st.session_state.messages = []
-    st.session_state.thread_id = str(uuid.uuid4())
-
-
-def rebuild_agent():
-    """Build the agent from everything saved in the index."""
-    chunks = index.all_chunks()
-    st.session_state.agent = build_agent(index, chunks) if chunks else None
-
-
-def add_pdfs(uploaded_files):
-    """Save the PDFs, split them into chunks, add them to the saved index."""
-    paths = []
-    for f in uploaded_files:
-        path = UPLOAD_DIR / Path(f.name).name  # .name removes any folder tricks
-        path.write_bytes(f.getvalue())
-        paths.append(path)
-
-    chunks = ingest_files(paths)
-    if not chunks:
-        raise ValueError("No readable text found. The PDF may be a scan.")
-
-    index.add(chunks)
-    rebuild_agent()
-    new_chat()  # a new agent has no memory of the old chat
+    st.session_state.conversation_id = str(uuid.uuid4())
 
 
 def show_sources(sources):
@@ -71,18 +55,17 @@ def show_sources(sources):
             st.caption(s["snippet"] + "...")
 
 
-# After a restart, load the saved documents automatically
-if st.session_state.agent is None and index.count() > 0:
-    rebuild_agent()
-
 # ---------- sidebar ----------
+resp = api("GET", "/documents", timeout=15)
+docs = resp.json() if resp.ok else {"files": [], "chunks": 0}
+
 with st.sidebar:
     st.caption(f"Model: {LLM_MODEL}")
+    st.caption(f"API: {API_URL}")
 
     st.subheader("Indexed documents")
-    files = index.sources()
-    if files:
-        for name in files:
+    if docs["files"]:
+        for name in docs["files"]:
             st.write(f"• {name}")
     else:
         st.write("None yet")
@@ -94,26 +77,30 @@ with st.sidebar:
         key=f"upload_{st.session_state.uploader_key}",
     )
     if uploaded:
-        try:
-            with st.spinner("Indexing..."):
-                add_pdfs(uploaded)
-            st.session_state.uploader_key += 1  # empties the uploader
-            st.rerun()
-        except Exception as e:
-            st.error(f"Could not process the files: {e}")
+        files = [("files", (f.name, f.getvalue(), "application/pdf")) for f in uploaded]
+        with st.spinner("Indexing..."):
+            r = api("POST", "/documents", files=files, timeout=600)
+        if r.ok:
+            new_chat()
+        else:
+            st.session_state.upload_error = error_text(r)
+        st.session_state.uploader_key += 1  # empties the uploader
+        st.rerun()
+    if st.session_state.upload_error:
+        st.error(st.session_state.upload_error)
+        st.session_state.upload_error = None
 
     st.divider()
     if st.button("New chat"):
         new_chat()
         st.rerun()
     if st.button("Clear all documents"):
-        index.clear()
-        st.session_state.agent = None
+        api("DELETE", "/documents", timeout=60)
         new_chat()
         st.rerun()
 
 # ---------- main area ----------
-if st.session_state.agent is None:
+if docs["chunks"] == 0:
     st.info("Add one or more PDF files in the sidebar to get started.")
 else:
     for m in st.session_state.messages:
@@ -127,7 +114,17 @@ else:
         st.chat_message("user").markdown(query)
 
         with st.spinner("Thinking..."):
-            answer, sources = ask(st.session_state.agent, query, st.session_state.thread_id)
+            r = api(
+                "POST",
+                "/ask",
+                json={"question": query, "conversation_id": st.session_state.conversation_id},
+                timeout=180,
+            )
+        if r.ok:
+            data = r.json()
+            answer, sources = data["answer"], data["sources"]
+        else:
+            answer, sources = f"Error: {error_text(r)}", []
 
         with st.chat_message("assistant"):
             st.markdown(answer)
