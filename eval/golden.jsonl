@@ -1,0 +1,14 @@
+{"question": "Explain Module 8.5", "must_contain": "Module 8.5:"}
+{"question": "Explain Module 1", "must_contain": "Module 1:"}
+{"question": "What is covered in Module 0?", "must_contain": "Module 0:"}
+{"question": "What does Module 5 cover?", "must_contain": "Module 5:"}
+{"question": "Which module covers SQL and Excel?", "must_contain": "Module 3:"}
+{"question": "What is the mini project in the PySpark module?", "must_contain": "NYC Taxi"}
+{"question": "When do I learn time series forecasting?", "must_contain": "Module 8: Time Series"}
+{"question": "Which module teaches Power BI or Tableau dashboards?", "must_contain": "Module 4:"}
+{"question": "What topics are covered in the NLP module?", "must_contain": "Module 9:"}
+{"question": "Which module covers LangChain and RAG pipelines?", "must_contain": "Module 11:"}
+{"question": "What happens in the final month with portfolio and job prep?", "must_contain": "Module 13:"}
+{"question": "Which module introduces GenAI foundations and prompt engineering?", "must_contain": "Module 10:"}
+{"question": "Who won the cricket world cup?", "should_refuse": true}
+{"question": "What is the capital of France?", "should_refuse": true}

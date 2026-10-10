@@ -46,7 +46,7 @@ class HybridRetriever:
         for key, r in vec_rank.items():
             fused[key] = fused.get(key, 0) + 1 / (RRF_K + r + 1)
         for key, r in bm_rank.items():
-            fused[key] = fused.get(key, 0) + 1 / (RRF_K + r + 1)
+            fused[key] = fused.get(key, 0) + 2.0 / (RRF_K + r + 1)
 
         top = sorted(fused, key=fused.get, reverse=True)[:k]
         results = [(self.by_key[key], vec_scores.get(key, 0.0)) for key in top]
