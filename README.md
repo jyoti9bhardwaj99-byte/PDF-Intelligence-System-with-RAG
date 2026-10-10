@@ -1,7 +1,8 @@
 # 📄 PDF Intelligence System with RAG
 
-Ask questions about your PDFs and get answers with **page citations**. A **FastAPI** backend does the work (ingestion, hybrid retrieval, answer generation) and a **Streamlit** app is the client. The system refuses to answer when the documents don't contain the answer.
 ![CI](https://github.com/jyoti9bhardwaj99-byte/PDF-Intelligence-System-with-RAG/actions/workflows/ci.yml/badge.svg)
+
+Ask questions about your PDFs and get answers with **page citations**. A **FastAPI** backend does the work (ingestion, hybrid retrieval, answer generation) and a **Streamlit** app is the client. The system refuses to answer when the documents don't contain the answer.
 
 ## Features
 
@@ -12,6 +13,7 @@ Ask questions about your PDFs and get answers with **page citations**. A **FastA
 - **Heading-aware chunking**: PDFs with headings such as `Module N:` are cut at each heading, even across page breaks, so a section stays in one chunk
 - **Persistent index**: vectors are stored in Chroma, so documents survive restarts; re-uploading a file does not create duplicates
 - **REST API** (FastAPI) with typed request and response models and interactive docs at `/docs`
+- **Tests and CI**: 18 pytest tests run on every push with GitHub Actions, which also builds the Docker image and checks that the API starts
 - **Evaluation script**: measures retrieval quality (Hit@k and MRR) for vector-only vs hybrid search
 
 ## Architecture
@@ -50,7 +52,7 @@ curl -X POST http://localhost:8000/ask -H "Content-Type: application/json" \
 
 ## Tech stack
 
-Python · FastAPI · Streamlit · LangChain · LangGraph · Groq LLM API · Hugging Face embeddings (`all-MiniLM-L6-v2`) · Chroma · `rank-bm25` · PyPDF · Pydantic
+Python · FastAPI · Streamlit · LangChain · LangGraph · Groq LLM API · Hugging Face embeddings (`all-MiniLM-L6-v2`) · Chroma · `rank-bm25` · PyPDF · Pydantic · pytest · GitHub Actions · Docker
 
 ## Project structure
 
@@ -64,8 +66,10 @@ Python · FastAPI · Streamlit · LangChain · LangGraph · Groq LLM API · Hugg
 | `app/retrieval.py` | Hybrid retriever (vector + BM25 + RRF) |
 | `app/agent.py` | LLM agent, retrieval tool, citations, not-found guard |
 | `streamlit_app.py` | Chat UI that calls the API |
-| `eval/golden.jsonl` | Test questions with expected passages |
-| `eval/run_eval.py` | Retrieval evaluation (Hit@k, MRR) |
+| `tests/` | pytest tests for chunking, retrieval, chunk IDs and the API |
+| `eval/` | Golden questions and the retrieval evaluation script |
+| `Dockerfile`, `docker-compose.yml` | Container setup |
+| `.github/workflows/ci.yml` | Tests and Docker build on every push |
 
 ## Setup
 
@@ -97,6 +101,22 @@ streamlit run streamlit_app.py
 
 Add PDFs in the sidebar, then ask questions. Each answer shows an expandable **Sources** list. If the API is not running, the UI says so.
 
+### With Docker
+
+```bash
+docker compose up --build
+```
+
+The UI is at `http://localhost:8501` and the API at `http://localhost:8000`. The `.env` file must be next to `docker-compose.yml`, and saved documents are kept in `./data`. GitHub Actions builds the image and checks `/health` on every push; the compose file itself has not been tested yet.
+
+## Tests
+
+```bash
+python -m pytest -v
+```
+
+The 18 tests need no API key and no internet. They cover chunking (including a section that crosses a page break), hybrid retrieval, duplicate-free chunk IDs, and the API endpoints with a fake agent.
+
 ## Evaluation
 
 ```bash
@@ -125,6 +145,7 @@ Hybrid search helped most on exact-label questions: "Explain Module 8.5" moved f
   3. Chose chunk boundaries by heading instead of by page: Module 8.5 crosses a page break, and its mini project had been separated from its heading.
   4. Tightened the prompt after the model added details that were not in the PDF.
   5. Made chunk IDs content hashes based on the file name, after a path-based ID caused duplicate chunks on re-upload.
+  6. Added regression tests for the page-break and duplicate-chunk bugs, so they cannot return unnoticed.
 - **Takeaway:** retrieval failures and generation failures are different problems and need different fixes. The evaluation script isolates the retrieval side.
 
 ## Limitations
@@ -134,9 +155,10 @@ Hybrid search helped most on exact-label questions: "Explain Module 8.5" moved f
 - Scanned PDFs without a text layer are not supported (no OCR)
 - Heading-aware chunking looks for headings like `Module N:`, `Chapter N:` and `Unit N:`; other PDFs fall back to page-based splitting
 - The evaluation set is small and covers one document
+- Not deployed online yet
 
 ## Roadmap
 
-- Automated tests (pytest) and CI
-- Docker and deployment
+- Deploy a public demo
 - User accounts with per-user document storage
+- Answer-level evaluation (expected phrases, no invented details)
